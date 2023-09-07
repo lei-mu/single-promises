@@ -1,0 +1,51 @@
+{
+  "name": "single-promises",
+  "version": "0.0.0-alpha.2",
+  "description": "Create a singleton pattern Promise-invoking function",
+  "private": false,
+  "unpkg": "./dist/single-promises.umd.js",
+  "jsdelivr": "./dist/single-promises.umd.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "puh:alpha": "npm publish --tag alpha",
+    "puh:beta": "npm publish --tag beta",
+    "puh:latest": "npm publish"
+  },
+  "author": {
+    "name": "luch"
+  },
+  "respository": {
+    "type": "git",
+    "url": "https://github.com/lei-mu/single-promises.git"
+  },
+  "license": "ISC",
+  "keywords": [
+    "promise",
+    "promises",
+    "single",
+    "single-promise"
+  ],
+  "homepage": "https://github.com/lei-mu/single-promises",
+  "bugs": {
+    "url": "https://github.com/lei-mu/single-promises/issues"
+  },
+  "files": [
+    "dist",
+    "index.d.ts"
+  ],
+  "main": "./dist/single-promises.umd.js",
+  "module": "./dist/single-promises.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./dist/single-promises.mjs",
+      "require": "./dist/single-promises.js",
+      "default": "./dist/single-promises.umd.js"
+    }
+  },
+  "devDependencies": {
+    "vite": "^4.4.9"
+  }
+}

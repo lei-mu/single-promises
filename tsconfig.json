@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "es2015",
+    "include": ["lib/**/*.ts", "lib/*.ts"],
+    // 其他的compilerOptions选项
+  },
+  // 其他的配置项
+}
