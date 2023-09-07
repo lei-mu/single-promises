@@ -1,6 +1,6 @@
 {
   "name": "single-promises",
-  "version": "0.0.0-alpha.2",
+  "version": "1.0.0",
   "description": "Create a singleton pattern Promise-invoking function",
   "private": false,
   "unpkg": "./dist/single-promises.umd.js",

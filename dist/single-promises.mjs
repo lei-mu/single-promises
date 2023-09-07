@@ -1,16 +1,16 @@
 /*!
- * single-promises v0.0.0-alpha.2
+ * single-promises v1.0.0
  * CopyRight (c) 2023-present, luch
  * Released under the ISC License.
  * https://github.com/lei-mu/single-promises
  */
-const f = "0.0.0-alpha.2";
-function h(a, n = {}) {
-  const u = {
+const f = "1.0.0";
+function h(u, n = {}) {
+  const a = {
     cache: 0
   };
   let e, l = -1, t;
-  n = Object.assign({}, u, n);
+  n = Object.assign({}, a, n);
   function c(...i) {
     let o = this, { cache: s } = n;
     if (s && l > 0) {
@@ -18,7 +18,7 @@ function h(a, n = {}) {
         return Promise.resolve(t);
       l = -1, t = null;
     }
-    return e || (e = Promise.resolve(a.apply(o, i)), e.then((r) => (s && (l = Date.now(), t = r), e = null, r)).catch((r) => (e = null, Promise.reject(r))));
+    return e || (e = Promise.resolve(u.apply(o, i)), e.then((r) => (s && (l = Date.now(), t = r), e = null, r)).catch((r) => (e = null, Promise.reject(r))));
   }
   return c.clear = function() {
     l = -1, t = null;
