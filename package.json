@@ -1,6 +1,6 @@
 {
   "name": "single-promises",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Create a singleton pattern Promise-invoking function",
   "private": false,
   "unpkg": "./dist/single-promises.umd.js",
@@ -8,9 +8,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "puh:alpha": "npm publish --tag alpha",
-    "puh:beta": "npm publish --tag beta",
-    "puh:latest": "npm publish"
+    "pub:alpha": "npm publish --tag alpha",
+    "pub:beta": "npm publish --tag beta",
+    "pub:latest": "npm publish"
   },
   "author": {
     "name": "luch"

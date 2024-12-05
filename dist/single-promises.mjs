@@ -1,10 +1,10 @@
 /*!
- * single-promises v1.0.0
+ * single-promises v1.0.1
  * CopyRight (c) 2023-present, luch
  * Released under the ISC License.
  * https://github.com/lei-mu/single-promises
  */
-const f = "1.0.0";
+const f = "1.0.1";
 function h(u, n = {}) {
   const a = {
     cache: 0
