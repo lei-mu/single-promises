@@ -22,7 +22,7 @@ declare module 'single-promises' {
     function singlePromise<F extends SyncFunction<any[], any> | AsyncFunction<any[], any>>(
       fn: F, 
       opt?: SinglePromiseOptions
-    ): SinglePromiseHandler<Parameters<F>, ReturnType<F>>;
+    ): SinglePromiseHandler<Parameters<F>, Awaited<ReturnType<F>>>;
   
     export { singlePromise };
   }
