@@ -5,7 +5,7 @@ export default defineConfig({
     // terserOptions: {
     // },
     lib: {
-      entry: './lib/index.js',
+      entry: './lib/index.ts',
       name: 'singlePromises',
       fileName: 'single-promises',
       formats: ["es", "umd", "cjs", 'iife'],

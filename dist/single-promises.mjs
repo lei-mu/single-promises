@@ -5,25 +5,29 @@
  * https://github.com/lei-mu/single-promises
  */
 const f = "1.0.1";
-function h(u, n = {}) {
-  const a = {
-    cache: 0
-  };
-  let e, l = -1, t;
-  n = Object.assign({}, a, n);
-  function c(...i) {
-    let o = this, { cache: s } = n;
-    if (s && l > 0) {
-      if (Date.now() - l < s)
-        return Promise.resolve(t);
-      l = -1, t = null;
+function h(u, s = {}) {
+  const i = { cache: 0, ...s };
+  let e = null, t = -1, r = null;
+  function c(...l) {
+    const a = this, { cache: o } = i;
+    if (o && t > 0) {
+      if (Date.now() - t < o)
+        return Promise.resolve(r);
+      t = -1, r = null;
     }
-    return e || (e = Promise.resolve(u.apply(o, i)), e.then((r) => (s && (l = Date.now(), t = r), e = null, r)).catch((r) => (e = null, Promise.reject(r))));
+    if (e)
+      return e;
+    try {
+      e = Promise.resolve(u.apply(a, l)).then((n) => (o && (t = Date.now(), r = n), e = null, n)).catch((n) => (e = null, Promise.reject(n)));
+    } catch (n) {
+      return Promise.reject(n);
+    }
+    return e;
   }
   return c.clear = function() {
-    l = -1, t = null;
-  }, c.update = function(i = {}) {
-    n = Object.assign({}, n, i);
+    t = -1, r = null;
+  }, c.update = function(l = {}) {
+    Object.assign(i, l);
   }, c;
 }
 export {

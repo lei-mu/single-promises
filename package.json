@@ -7,10 +7,11 @@
   "jsdelivr": "./dist/single-promises.umd.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && tsc --emitDeclarationOnly",
     "pub:alpha": "npm publish --tag alpha",
     "pub:beta": "npm publish --tag beta",
-    "pub:latest": "npm publish"
+    "pub:latest": "npm publish",
+    "test": "vitest run"
   },
   "author": {
     "name": "luch"
@@ -31,21 +32,22 @@
     "url": "https://github.com/lei-mu/single-promises/issues"
   },
   "files": [
-    "dist",
-    "index.d.ts"
+    "dist"
   ],
   "main": "./dist/single-promises.umd.js",
   "module": "./dist/single-promises.js",
-  "types": "./index.d.ts",
+  "types": "./dist/lib/index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
+      "types": "./dist/lib/index.d.ts",
       "import": "./dist/single-promises.mjs",
       "require": "./dist/single-promises.js",
       "default": "./dist/single-promises.umd.js"
     }
   },
   "devDependencies": {
-    "vite": "^4.4.9"
+    "typescript": "^6.0.3",
+    "vite": "^4.4.9",
+    "vitest": "^0.34.6"
   }
 }
