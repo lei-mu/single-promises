@@ -1,6 +1,6 @@
-(function(e,i){typeof exports=="object"&&typeof module<"u"?i(exports):typeof define=="function"&&define.amd?define(["exports"],i):(e=typeof globalThis<"u"?globalThis:e||self,i(e.singlePromises={}))})(this,function(e){"use strict";/*!
+(function(e,o){typeof exports=="object"&&typeof module<"u"?o(exports):typeof define=="function"&&define.amd?define(["exports"],o):(e=typeof globalThis<"u"?globalThis:e||self,o(e.singlePromises={}))})(this,function(e){"use strict";/*!
  * single-promises v1.0.1
  * CopyRight (c) 2023-present, luch
  * Released under the ISC License.
  * https://github.com/lei-mu/single-promises
- */const i="1.0.1";function f(a,t={}){const d={cache:0};let n,l=-1,s;t=Object.assign({},d,t);function r(...u){let h=this,{cache:c}=t;if(c&&l>0){if(Date.now()-l<c)return Promise.resolve(s);l=-1,s=null}return n||(n=Promise.resolve(a.apply(h,u)),n.then(o=>(c&&(l=Date.now(),s=o),n=null,o)).catch(o=>(n=null,Promise.reject(o))))}return r.clear=function(){l=-1,s=null},r.update=function(u={}){t=Object.assign({},t,u)},r}e.singlePromise=f,e.version=i,Object.defineProperty(e,Symbol.toStringTag,{value:"Module"})});
+ */const f="1.0.1";function a(h,p={}){let s={cache:0,...p},n,i=-1,r;function c(...d){const{cache:u}=s;if(u>0&&i>0){if(Date.now()-i<u)return Promise.resolve(r);i=-1,r=void 0}if(n)return n;let l;try{l=h.apply(this,d)}catch(t){return Promise.reject(t)}return n=Promise.resolve(l).then(t=>(u>0&&(i=Date.now(),r=t),n=void 0,t),t=>{throw n=void 0,t}),n}return c.clear=()=>{i=-1,r=void 0},c.update=(d={})=>{s={...s,...d}},c}e.singlePromise=a,e.version=f,Object.defineProperty(e,Symbol.toStringTag,{value:"Module"})});

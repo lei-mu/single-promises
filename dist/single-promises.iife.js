@@ -1,6 +1,6 @@
-var singlePromises=function(t){"use strict";/*!
+var singlePromises=function(n){"use strict";/*!
  * single-promises v1.0.1
  * CopyRight (c) 2023-present, luch
  * Released under the ISC License.
  * https://github.com/lei-mu/single-promises
- */const a="1.0.1";function o(f,n={}){const h={cache:0};let e,l=-1,i;n=Object.assign({},h,n);function s(...c){let m=this,{cache:u}=n;if(u&&l>0){if(Date.now()-l<u)return Promise.resolve(i);l=-1,i=null}return e||(e=Promise.resolve(f.apply(m,c)),e.then(r=>(u&&(l=Date.now(),i=r),e=null,r)).catch(r=>(e=null,Promise.reject(r))))}return s.clear=function(){l=-1,i=null},s.update=function(c={}){n=Object.assign({},n,c)},s}return t.singlePromise=o,t.version=a,Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),t}({});
+ */const a="1.0.1";function v(d,h={}){let o={cache:0,...h},e,t=-1,i;function s(...c){const{cache:l}=o;if(l>0&&t>0){if(Date.now()-t<l)return Promise.resolve(i);t=-1,i=void 0}if(e)return e;let u;try{u=d.apply(this,c)}catch(r){return Promise.reject(r)}return e=Promise.resolve(u).then(r=>(l>0&&(t=Date.now(),i=r),e=void 0,r),r=>{throw e=void 0,r}),e}return s.clear=()=>{t=-1,i=void 0},s.update=(c={})=>{o={...o,...c}},s}return n.singlePromise=v,n.version=a,Object.defineProperty(n,Symbol.toStringTag,{value:"Module"}),n}({});

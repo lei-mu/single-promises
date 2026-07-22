@@ -4,29 +4,38 @@
  * Released under the ISC License.
  * https://github.com/lei-mu/single-promises
  */
-const f = "1.0.1";
-function h(u, n = {}) {
-  const a = {
-    cache: 0
-  };
-  let e, l = -1, t;
-  n = Object.assign({}, a, n);
-  function c(...i) {
-    let o = this, { cache: s } = n;
-    if (s && l > 0) {
-      if (Date.now() - l < s)
-        return Promise.resolve(t);
-      l = -1, t = null;
+const d = "1.0.1", h = d;
+function v(a, u = {}) {
+  let o = { cache: 0, ...u }, e, t = -1, n;
+  function i(...c) {
+    const { cache: s } = o;
+    if (s > 0 && t > 0) {
+      if (Date.now() - t < s)
+        return Promise.resolve(n);
+      t = -1, n = void 0;
     }
-    return e || (e = Promise.resolve(u.apply(o, i)), e.then((r) => (s && (l = Date.now(), t = r), e = null, r)).catch((r) => (e = null, Promise.reject(r))));
+    if (e)
+      return e;
+    let l;
+    try {
+      l = a.apply(this, c);
+    } catch (r) {
+      return Promise.reject(r);
+    }
+    return e = Promise.resolve(l).then(
+      (r) => (s > 0 && (t = Date.now(), n = r), e = void 0, r),
+      (r) => {
+        throw e = void 0, r;
+      }
+    ), e;
   }
-  return c.clear = function() {
-    l = -1, t = null;
-  }, c.update = function(i = {}) {
-    n = Object.assign({}, n, i);
-  }, c;
+  return i.clear = () => {
+    t = -1, n = void 0;
+  }, i.update = (c = {}) => {
+    o = { ...o, ...c };
+  }, i;
 }
 export {
-  h as singlePromise,
-  f as version
+  v as singlePromise,
+  h as version
 };
