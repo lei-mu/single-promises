@@ -6,7 +6,6 @@
   "unpkg": "./dist/single-promises.umd.js",
   "jsdelivr": "./dist/single-promises.umd.js",
   "scripts": {
-    "dev": "vite",
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest run",
     "pub:alpha": "npm publish --tag alpha",
