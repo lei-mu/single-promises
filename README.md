@@ -36,13 +36,13 @@ const {singlePromise, version} = require('single-promises')
 jsDelivr CDN
 
 ```` js
-<script src="https://cdn.jsdelivr.net/npm/single-promises@1.0.0/dist/single-promises.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/single-promises@latest/dist/single-promises.iife.js"></script>
 ````
 
 unpkg CDN
 
 ```` js
-<script src="https://unpkg.com/single-promises@1.0.0/dist/single-promises.iife.js"></script>
+<script src="https://unpkg.com/single-promises@latest/dist/single-promises.iife.js"></script>
 ````
 
 ```` js
@@ -50,6 +50,8 @@ unpkg CDN
     const { singlePromise, version } = singlePromises
 </script>
 ````
+
+`@latest` 始终指向 npm 上的最新版本，适合快速体验。生产环境建议将 `latest` 替换为经过验证的具体版本号，避免自动升级带来兼容性风险。
 
 
 
@@ -82,6 +84,29 @@ for (let i = 0; i < 5; i++) {
 // 输出5遍结果,但只获取了一次当前时间
 ````
 
+### TypeScript
+
+`singlePromise` 会保留原函数的参数和返回值类型：
+
+````ts
+interface User {
+  id: number
+  name: string
+}
+
+const getUser = singlePromise(
+  async (id: number): Promise<User> => {
+    return {
+      id,
+      name: 'Tom'
+    }
+  }
+)
+
+const user = await getUser(1) // User
+````
+
+类型提示中可能出现 TypeScript 的 `this` parameter。它只用于检查调用上下文，不属于实际调用参数。
 
 
 
@@ -195,7 +220,21 @@ Return: `Function`
 
 Type: `Function`
 
-要调用的函数。当执行返回的函数时，`this`上下文和所有参数将按原样传递给 `fn`。fn 函数可以返回promise,或其他，因为在`singlePromise `函数内部，`fn`函数将被`Promise.resolve` 函数包裹。
+要调用的函数。当执行返回的函数时，`this`上下文和所有参数将按原样传递给 `fn`。`fn` 可以返回 Promise，也可以直接返回同步值，返回值最终都会转换为 Promise。`fn` 同步抛出的异常会转换为 rejected Promise。
+
+````ts
+const add = singlePromise((left: number, right: number) => left + right)
+
+await add(1, 2) // 3
+
+const failed = singlePromise(() => {
+  throw new Error('计算失败')
+})
+
+await failed().catch(error => {
+  console.log(error.message) // 计算失败
+})
+````
 
 #### options
 
@@ -262,7 +301,9 @@ handle 函数调用返回一个promise, 这个promise的 `fulfilled`/ `rejected`
 
 Type: `Function`
 
-清除缓存结果函数。调用将清除上次的缓存结果。
+清除当前 fulfilled 缓存结果，使下一次调用重新执行 `fn`。
+
+`handle.clear()` 不会取消正在执行的 Promise，也不会改变已经返回给调用方的 Promise。调用 `clear()` 时如果任务仍处于 pending 状态，该任务完成后仍可能按照启动任务时的缓存配置保存结果。请求取消需要由业务函数通过 `AbortController` 等机制实现。
 
 #### handle.update
 
@@ -270,7 +311,13 @@ Type: `Function`
 
 handle.update(options)
 
-更新`options`函数。`handle.update({cache: 1000})`,调用后将更新handle 的配置。
+更新后续调用使用的配置：
+
+````ts
+handle.update({ cache: 1000 })
+````
+
+`update()` 不会重新执行 `fn`、不会取消 pending Promise，也不会主动清除已有缓存。已经开始执行的任务使用启动时取得的缓存配置；新配置从后续调用开始生效。如果需要立即丢弃已有缓存，应额外调用 `handle.clear()`。
 
 
 
@@ -282,21 +329,57 @@ handle.update(options)
 
 ## 常见问题
 
+### 不同参数的并发调用会怎样
+
+pending 期间不会比较参数，后续调用会共享第一次调用产生的 Promise：
+
+````ts
+const getUser = singlePromise((id: number) => requestUser(id))
+
+getUser(1)
+getUser(2) // 共享 id=1 请求的结果
+````
+
+如果需要按多参数分别合并，可以使用 `Map` 为每组参数保存独立的 handle：
+
+````ts
+type UserType = 'basic' | 'detail'
+
+const createHandle = (userId: number, type: UserType) => {
+  return singlePromise(() => requestUser(userId, type), { cache: 1000 })
+}
+const handles = new Map<string, ReturnType<typeof createHandle>>()
+
+function getUser(userId: number, type: UserType) {
+  const key = `${userId}:${type}`
+  let handle = handles.get(key)
+  if (!handle) {
+    handle = createHandle(userId, type)
+    handles.set(key, handle)
+  }
+  return handle()
+}
+````
+
+参数组合可能持续增长时，应在不再使用后调用 `handle.clear()` 并从 `Map` 删除对应项。不建议直接用 `JSON.stringify` 序列化任意参数作为通用 key。
 
 ### 如果在vue 使用
 
-注意：需要在 `data` 配置项 调用创建，不然会丢失 `handle.clear`、`handle.update` 方法
+注意：需要在 `data` 配置项调用创建，不然会丢失 `handle.clear`、`handle.update` 方法。
 
 ```` vue
 <script>
 // vue2
 import { singlePromise } from 'single-promises'
 {
-	data () {
-		return {
-            	singleGetUserInfo: singlePromise((params) => axios.get('api/userInfo', {params}), {cache: 1000})
-			}
-	}
+  data () {
+    return {
+      singleGetUserInfo: singlePromise(
+        (params) => axios.get('api/userInfo', { params }),
+        { cache: 1000 }
+      )
+    }
+  }
 }
 </script>
 ````
