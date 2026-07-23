@@ -1,11 +1,11 @@
 /*!
- * single-promises v1.0.2-alpha.0
+ * single-promises v1.0.2
  * CopyRight (c) 2023-present, luch
  * Released under the ISC License.
  * https://github.com/lei-mu/single-promises
  */
-const h = "1.0.2-alpha.0", d = h;
-function v(l, u = {}) {
+const d = "1.0.2", h = d;
+function v(a, u = {}) {
   let o = { cache: 0, ...u }, e, t = -1, n;
   function i(...c) {
     const { cache: s } = o;
@@ -16,13 +16,13 @@ function v(l, u = {}) {
     }
     if (e)
       return e;
-    let a;
+    let l;
     try {
-      a = l.apply(this, c);
+      l = a.apply(this, c);
     } catch (r) {
       return Promise.reject(r);
     }
-    return e = Promise.resolve(a).then(
+    return e = Promise.resolve(l).then(
       (r) => (s > 0 && (t = Date.now(), n = r), e = void 0, r),
       (r) => {
         throw e = void 0, r;
@@ -37,5 +37,5 @@ function v(l, u = {}) {
 }
 export {
   v as singlePromise,
-  d as version
+  h as version
 };
