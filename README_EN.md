@@ -36,13 +36,13 @@ const { singlePromise, version } = require('single-promises')
 jsDelivr CDN
 
 ```js
-<script src="https://cdn.jsdelivr.net/npm/single-promises@1.0.0/dist/single-promises.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/single-promises@latest/dist/single-promises.iife.js"></script>
 ```
 
 unpkg CDN
 
 ```js
-<script src="https://unpkg.com/single-promises@1.0.0/dist/single-promises.iife.js"></script>
+<script src="https://unpkg.com/single-promises@latest/dist/single-promises.iife.js"></script>
 ```
 
 ```js
@@ -50,6 +50,8 @@ unpkg CDN
     const { singlePromise, version } = singlePromises
 </script>
 ```
+
+`@latest` always points to the latest npm release and is convenient for quick evaluation. In production, replace `latest` with a version you have tested to avoid unexpected compatibility changes.
 
 ## Example
 
@@ -79,6 +81,30 @@ for (let i = 0; i < 5; i++) {
 // res 1694058404950
 // Outputs the result 5 times but only fetches the current time once
 ```
+
+### TypeScript
+
+`singlePromise` preserves the parameter and return types of the original function:
+
+```ts
+interface User {
+  id: number
+  name: string
+}
+
+const getUser = singlePromise(
+  async (id: number): Promise<User> => {
+    return {
+      id,
+      name: 'Tom'
+    }
+  }
+)
+
+const user = await getUser(1) // User
+```
+
+Type hints may display a TypeScript `this` parameter. It is only used to type-check the calling context and is not an actual argument.
 
 ### Access Token Refresh Without Hassle
 
@@ -190,7 +216,21 @@ Return: `Function`
 
 Type: `Function`
 
-The function to be called. When executing the returned function, the `this` context and all parameters will be passed to `fn` as they are. The `fn` function can return a promise or anything else because inside the `singlePromise` function, the `fn` function will be wrapped with `Promise.resolve`.
+The function to call. Its `this` context and arguments are forwarded unchanged. `fn` may return a Promise or a synchronous value; the result is always converted to a Promise. A synchronously thrown error becomes a rejected Promise.
+
+```ts
+const add = singlePromise((left: number, right: number) => left + right)
+
+await add(1, 2) // 3
+
+const failed = singlePromise(() => {
+  throw new Error('Calculation failed')
+})
+
+await failed().catch(error => {
+  console.log(error.message) // Calculation failed
+})
+```
 
 #### options
 
@@ -208,6 +248,41 @@ Default: `0`
 
 The caching time for the result after `fn` function returns, in milliseconds. Within the cache time, the next call will directly return the cached result. Default is 0 (no caching). The cache time starts from the moment the `fn` function returns a `fulfilled` state, and if the `fn` function returns a `rejected` state, it won't be cached.
 
+#### Cache Notes and Best Practices
+
+- The cached value is stored in the returned function's closure and may stay in memory while that function remains reachable.
+- In an SPA, route navigation does not reset the JavaScript runtime. A handle exported from a shared module therefore keeps its cache across pages.
+- Cache expiration is checked on the next call; the current implementation does not release the result automatically when the duration elapses. Call `handle.clear()` when immediate cleanup is required.
+- Each `singlePromise` instance stores at most one fulfilled result, so entries do not accumulate with every call. Explicit cleanup is still recommended for large results.
+- Clear page-specific caches when the page or component is destroyed. Do not let one page clear a cache intentionally shared by multiple pages.
+- Rejected results are not cached. A Promise that never settles can retain related references indefinitely, so configure timeout or cancellation behavior in the request layer.
+
+A cached object is an ordinary strong reference to the same object instance. Calls that hit the cache receive the same object, so mutating it can affect other callers:
+
+```js
+const getUser = singlePromise(
+  () => Promise.resolve({ name: 'Tom', roles: ['user'] }),
+  { cache: 1000 }
+)
+
+const first = await getUser()
+const second = await getUser()
+
+first.name = 'Jerry'
+console.log(second.name) // Jerry
+```
+
+Treat cached results as read-only. If mutation is necessary, create a deep copy first:
+
+```js
+const cachedUser = await getUser()
+const editableUser = structuredClone(cachedUser)
+
+editableUser.name = 'Jerry'
+```
+
+`structuredClone` works with cloneable data. Choose an appropriate copy strategy for functions, DOM nodes, or other non-cloneable values.
+
 #### Returned Function
 
 ```js
@@ -222,7 +297,9 @@ The `handle` function call returns a promise, and its `fulfilled`/`rejected` sta
 
 Type: `Function`
 
-Function to clear the cached result. Calling this will clear the previous cached result.
+Clears the current fulfilled result so that the next call executes `fn` again.
+
+`handle.clear()` does not cancel a pending Promise or change a Promise already returned to a caller. If a task is pending when `clear()` is called, it may still cache its result according to the options captured when that task started. Cancellation must be implemented by the wrapped function, for example with `AbortController`.
 
 #### handle.update
 
@@ -230,13 +307,53 @@ Type: `Function`
 
 handle.update(options)
 
-Update the options of the handle. For example, `handle.update({cache: 1000})` will update the handle's configuration.
+Updates options used by subsequent calls:
+
+```ts
+handle.update({ cache: 1000 })
+```
+
+`update()` does not execute `fn`, cancel a pending Promise, or clear an existing cached value. A task that has already started uses the cache options captured at its start. Call `handle.clear()` as well if an existing cached value must be discarded immediately.
 
 ### version
 
 The current version number of the package.
 
 ## Frequently Asked Questions
+
+### What Happens When Concurrent Calls Use Different Arguments?
+
+Arguments are not compared while a Promise is pending. Later calls share the Promise created by the first call:
+
+```ts
+const getUser = singlePromise((id: number) => requestUser(id))
+
+getUser(1)
+getUser(2) // Shares the result of the id=1 request
+```
+
+To merge calls separately by multiple arguments, keep one handle per argument combination in a `Map`:
+
+```ts
+type UserType = 'basic' | 'detail'
+
+const createHandle = (userId: number, type: UserType) => {
+  return singlePromise(() => requestUser(userId, type), { cache: 1000 })
+}
+const handles = new Map<string, ReturnType<typeof createHandle>>()
+
+function getUser(userId: number, type: UserType) {
+  const key = `${userId}:${type}`
+  let handle = handles.get(key)
+  if (!handle) {
+    handle = createHandle(userId, type)
+    handles.set(key, handle)
+  }
+  return handle()
+}
+```
+
+If the number of argument combinations can grow continuously, call `handle.clear()` and delete unused entries from the `Map`. Avoid using `JSON.stringify` as a universal key generator for arbitrary arguments.
 
 ### When Using in Vue
 
@@ -259,7 +376,3 @@ import { singlePromise } from 'single-promises'
 ### Difference from `throttle` and `debounce`
 
 Throttle/debounce depend on what to do within a specified time, while `singlePromise` depends on what to do when the promise returned by the `fn` function is in the `pending` state.
-
-
-
-> Note: Translated by ChatGpt 3.5
