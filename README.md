@@ -213,6 +213,41 @@ Default: `0`
 
 `fn`函数返回结果后的缓存时间,单位`ms`。在缓存时间内，下次调用将直接返回缓存的结果。默认0 不缓存。缓存时间从`fn` 函数返回`fulfilled`状态开始算起，如果`fn`函数返回`rejected`状态则不缓存。
 
+#### 缓存说明和最佳实践
+
+- 缓存保存在返回函数的闭包中。只要返回函数仍然可访问，缓存结果就可能继续占用内存。
+- 在 SPA（单页面应用）中，切换路由不会刷新 JavaScript 运行环境。如果返回函数定义在公共模块中，切换页面后缓存仍然存在。
+- 当前实现不会在缓存时间结束时自动释放结果。缓存是否过期会在下一次调用时检查，也可以通过 `handle.clear()` 主动清除。
+- 每个 `singlePromise` 实例最多缓存一个 fulfilled 结果，不会随着调用次数持续累积。不过，如果缓存结果包含大量数据，建议在不再需要时调用 `handle.clear()`。
+- 如果缓存只属于某个页面，可以在页面或组件卸载时调用 `handle.clear()`；如果缓存需要跨页面共享，则不要由单个页面随意清除。
+- rejected 结果不会缓存。正在执行且一直不结束的 Promise 也会持续占用相关引用，建议在请求层配置超时或取消机制。
+
+缓存的对象结果是同一个对象实例的普通强引用。多次命中缓存时，调用方拿到的对象引用相同；任意一方直接修改对象，都可能影响其他调用方已经取得或之后取得的结果。
+
+````js
+const getUser = singlePromise(
+  () => Promise.resolve({ name: 'Tom', roles: ['user'] }),
+  { cache: 1000 }
+)
+
+const first = await getUser()
+const second = await getUser()
+
+first.name = 'Jerry'
+console.log(second.name) // Jerry
+````
+
+最佳实践是将缓存结果视为只读数据。如果必须修改，可以在修改前进行深拷贝：
+
+````js
+const cachedUser = await getUser()
+const editableUser = structuredClone(cachedUser)
+
+editableUser.name = 'Jerry'
+````
+
+`structuredClone` 适合可克隆的普通数据。对于包含函数、DOM 节点或其他不可克隆值的对象，需要根据数据结构选择合适的拷贝方式。
+
 #### 返回函数
 
 ```` js
