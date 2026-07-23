@@ -36,10 +36,10 @@
   ],
   "main": "./dist/single-promises.umd.js",
   "module": "./dist/single-promises.js",
-  "types": "./dist/lib/index.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/lib/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/single-promises.mjs",
       "require": "./dist/single-promises.js",
       "default": "./dist/single-promises.umd.js"
