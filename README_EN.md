@@ -22,13 +22,13 @@ npm install single-promises -S
 Import
 
 ```js
-import { singlePromise, version } from 'single-promises'
+import { keyedSinglePromise, singlePromise, version } from 'single-promises'
 ```
 
 Require
 
 ```js
-const { singlePromise, version } = require('single-promises')
+const { keyedSinglePromise, singlePromise, version } = require('single-promises')
 ```
 
 #### CDN
@@ -176,6 +176,26 @@ const getUserInfo = singlePromise((params) => axios.get('api/userInfo', {params}
 
 Multiple components simultaneously call it, and only one API request will be made.
 
+### Merge Requests by Key
+
+`keyedSinglePromise` only merges concurrent calls that produce the same key. Calls with different keys execute independently.
+
+```js
+import { keyedSinglePromise } from 'single-promises'
+
+const getUser = keyedSinglePromise(
+  (id) => axios.get(`/api/users/${id}`),
+  {
+    key: (id) => id,
+    cache: 1000
+  }
+)
+
+getUser(1)
+getUser(1) // Merged with the previous call
+getUser(2) // Uses a different key and executes independently
+```
+
 ## API
 
 ### singlePromise
@@ -217,6 +237,18 @@ const handle = singlePromise(() => Promise.resolve('response'), {cache: 1500})
 Return: `Promise`
 
 The `handle` function call returns a promise, and its `fulfilled`/`rejected` state depends on the state of the promise returned by the `fn` function. When you execute the `handle` function, the `this` context and all parameters will be passed to `fn`.
+
+### keyedSinglePromise
+
+Merges calls according to the value returned by `options.key`.
+
+`keyedSinglePromise(fn, options)`
+
+- `options.key`: Required. Returns any value that can be used as a `Map` key.
+- `options.cache`: Optional. Result cache duration for each key, in milliseconds.
+- `handle.clear(key)`: Clears the cached result for the specified key.
+- `handle.clear()`: Clears cached results for all keys.
+- `handle.update(options)`: Updates cache options for all keys.
 
 #### handle.clear
 

@@ -20,13 +20,13 @@ npm install single-promises -S
 import
 
 ```` js
-import {singlePromise, version} from 'single-promises'
+import {keyedSinglePromise, singlePromise, version} from 'single-promises'
 ````
 
 require
 
 ```` js
-const {singlePromise, version} = require('single-promises')
+const {keyedSinglePromise, singlePromise, version} = require('single-promises')
 ````
 
 
@@ -179,6 +179,26 @@ const getUserInfo = singlePromise((params) => axios.get('api/userInfo', {params}
 
 多个组件同时调用，只会调用一次api 请求
 
+### 按参数合并请求
+
+`keyedSinglePromise` 只合并 key 相同的并发调用，不同 key 的调用会独立执行。
+
+````js
+import { keyedSinglePromise } from 'single-promises'
+
+const getUser = keyedSinglePromise(
+  (id) => axios.get(`/api/users/${id}`),
+  {
+    key: (id) => id,
+    cache: 1000
+  }
+)
+
+getUser(1)
+getUser(1) // 与上一次调用合并
+getUser(2) // 使用不同 key，独立执行
+````
+
 
 
 ## API
@@ -218,6 +238,18 @@ Default: `0`
 ```` js
 const handle = singlePromise(() => Promise.resolve('response'), {cache: 1500})
 ````
+
+### keyedSinglePromise
+
+根据 `options.key` 的返回值合并调用。
+
+`keyedSinglePromise(fn, options)`
+
+- `options.key`：必填，根据调用参数返回任意可作为 `Map` key 的值。
+- `options.cache`：可选，每个 key 的结果缓存时间，单位 `ms`。
+- `handle.clear(key)`：清除指定 key 的缓存。
+- `handle.clear()`：清除全部 key 的缓存。
+- `handle.update(options)`：更新所有 key 的缓存配置。
 
 Return: `Promise`
 

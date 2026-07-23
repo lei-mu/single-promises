@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { singlePromise } from '../lib'
+import { keyedSinglePromise, singlePromise } from '../lib'
 
 afterEach(() => vi.useRealTimers())
 
@@ -72,5 +72,84 @@ describe('singlePromise', () => {
 
     expect(result).toBeInstanceOf(Promise)
     await expect(result).rejects.toBe(error)
+  })
+})
+
+describe('keyedSinglePromise', () => {
+  it('相同 key 合并执行，不同 key 独立执行', async () => {
+    const resolvers = new Map<number, (value: string) => void>()
+    const source = vi.fn((id: number) => new Promise<string>((resolve) => {
+      resolvers.set(id, resolve)
+    }))
+    const wrapped = keyedSinglePromise(source, { key: (id) => id })
+
+    const first = wrapped(1)
+    const sameKey = wrapped(1)
+    const otherKey = wrapped(2)
+
+    expect(source).toHaveBeenCalledTimes(2)
+    resolvers.get(1)?.('user-1')
+    resolvers.get(2)?.('user-2')
+    await expect(Promise.all([first, sameKey, otherKey])).resolves.toEqual(['user-1', 'user-1', 'user-2'])
+  })
+
+  it('按 key 缓存结果并在过期后重新执行', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    const source = vi.fn(async (id: number) => `${id}-${source.mock.calls.length}`)
+    const wrapped = keyedSinglePromise(source, { key: (id) => id, cache: 1000 })
+
+    await expect(wrapped(1)).resolves.toBe('1-1')
+    await expect(wrapped(2)).resolves.toBe('2-2')
+    await expect(wrapped(1)).resolves.toBe('1-1')
+    vi.advanceTimersByTime(1000)
+    await expect(wrapped(1)).resolves.toBe('1-3')
+  })
+
+  it('clear 可清除指定 key 或全部缓存', async () => {
+    const source = vi.fn(async (id: number) => source.mock.calls.length)
+    const wrapped = keyedSinglePromise(source, { key: (id) => id, cache: 1000 })
+
+    await wrapped(1)
+    await wrapped(2)
+    wrapped.clear(1)
+    await wrapped(1)
+    await wrapped(2)
+    expect(source).toHaveBeenCalledTimes(3)
+
+    wrapped.clear()
+    await wrapped(1)
+    await wrapped(2)
+    expect(source).toHaveBeenCalledTimes(5)
+  })
+
+  it('update 更新所有 key 的缓存配置', async () => {
+    const source = vi.fn(async (id: number) => id)
+    const wrapped = keyedSinglePromise(source, { key: (id) => id, cache: 1000 })
+
+    await wrapped(1)
+    wrapped.update({ cache: 0 })
+    await wrapped(1)
+    await wrapped(1)
+    expect(source).toHaveBeenCalledTimes(3)
+  })
+
+  it('失败不缓存，并保留 fn 和 key 的 this 上下文', async () => {
+    const target = {
+      prefix: 'user',
+      source: vi.fn()
+        .mockRejectedValueOnce(new Error('失败'))
+        .mockImplementation(function (this: { prefix: string }, id: number) {
+          return `${this.prefix}-${id}`
+        }),
+      getKey(this: { prefix: string }, id: number) {
+        return `${this.prefix}-${id}`
+      },
+    }
+    const wrapped = keyedSinglePromise(target.source, { key: target.getKey, cache: 1000 })
+
+    await expect(wrapped.call(target, 1)).rejects.toThrow('失败')
+    await expect(wrapped.call(target, 1)).resolves.toBe('user-1')
+    expect(target.source).toHaveBeenCalledTimes(2)
   })
 })
