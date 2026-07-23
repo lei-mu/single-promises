@@ -31,7 +31,8 @@
     "url": "https://github.com/lei-mu/single-promises/issues"
   },
   "files": [
-    "dist"
+    "dist",
+    "README_EN.md"
   ],
   "main": "./dist/single-promises.umd.js",
   "module": "./dist/single-promises.js",

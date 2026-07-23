@@ -1,6 +1,33 @@
-**/.*
-src/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies and local build files
 node_modules
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Repository-only files
+AGENTS.md
+.agents
+.claude
+.ai-workspace
+src/
 public
 test
 index.html
