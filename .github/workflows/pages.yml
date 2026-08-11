@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
@@ -41,7 +43,7 @@ jobs:
       - name: 准备静态站点
         run: |
           mkdir _site
-          cp index.html _site/index.html
+          cp docs/index.html _site/index.html
           cp -r dist _site/dist
           touch _site/.nojekyll
 
