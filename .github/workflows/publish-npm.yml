@@ -1,0 +1,105 @@
+name: Publish npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: 安装 npm 11
+        run: npm install --global npm@11
+
+      - name: 校验发布 tag
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin master
+
+          tag_name="${GITHUB_REF_NAME}"
+          if [[ ! "${tag_name}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)\.[0-9]+)?$ ]]; then
+            echo "发布 tag 必须形如 v1.0.2、v1.0.2-alpha.1 或 v1.0.2-beta.1"
+            exit 1
+          fi
+
+          release_version="${tag_name#v}"
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          if [[ "${release_version}" != "${package_version}" ]]; then
+            echo "tag 版本 ${release_version} 与 package.json 版本 ${package_version} 不一致"
+            exit 1
+          fi
+
+          if npm view "${package_name}@${release_version}" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "${package_name}@${release_version} 已经发布到 npm"
+            exit 1
+          fi
+
+          release_commit="$(git rev-list -n 1 "${tag_name}")"
+          if ! git merge-base --is-ancestor "${release_commit}" origin/master; then
+            echo "tag 指向的 commit 必须属于 origin/master 历史"
+            exit 1
+          fi
+
+          if [[ "${release_version}" == *"-alpha."* ]]; then
+            npm_tag="alpha"
+          elif [[ "${release_version}" == *"-beta."* ]]; then
+            npm_tag="beta"
+          else
+            npm_tag="latest"
+          fi
+
+          echo "version=${release_version}" >> "${GITHUB_OUTPUT}"
+          echo "npm_tag=${npm_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行单元测试
+        run: npm test
+
+      - name: 构建库
+        run: npm run build
+
+      - name: 打包 npm 构建物
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pack_output="$(npm pack --json)"
+          package_file="$(node -e "const input = JSON.parse(process.argv[1]); console.log(input[0].filename)" "${pack_output}")"
+          echo "package_file=${package_file}" >> "${GITHUB_OUTPUT}"
+
+      - name: 上传 npm 构建物
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-promises-${{ steps.release.outputs.version }}-npm-package
+          path: ${{ steps.pack.outputs.package_file }}
+          if-no-files-found: error
+
+      - name: 发布到 npm
+        run: npm publish "${{ steps.pack.outputs.package_file }}" --tag "${{ steps.release.outputs.npm_tag }}"
+
+      - name: 同步 cnpm
+        run: npx cnpm sync single-promises
